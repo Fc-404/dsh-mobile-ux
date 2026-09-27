@@ -19,73 +19,12 @@
  * identity. A post-mark self-check then measures the conversation column and
  * tears everything down again if the frame is not where it should be — a wrong
  * guess must never hide the conversation.
- *
- * TEMPORARY: a bottom-left badge reports which stage ran (boot → apply → ready /
- * no-frame / self-disable). It exists only until the integration is verified on
- * a real device and must be removed afterwards.
  */
 
 window.__ModuleLoader__.load({
 	id: '@local/dsh-mobile-ux',
 	factory() {
-		/** Temporary stage badge; remove with the diagnostic block in apply(). */
-		const badge = (text, color) => {
-			let el = document.getElementById('dsh-mobile-ux-badge');
-			if (el === null) {
-				el = document.createElement('div');
-				el.id = 'dsh-mobile-ux-badge';
-				el.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:2147483647;padding:4px 8px;'
-					+ 'border-radius:8px;font:11px/1.4 ui-monospace,Menlo,monospace;color:#fff;pointer-events:none;'
-					+ 'opacity:.92;max-width:70vw;word-break:break-all';
-				(document.body || document.documentElement).appendChild(el);
-			}
-			el.textContent = text;
-			el.style.background = color;
-			return el;
-		};
-		badge('UX v9: boot', '#555555');
 
-		/**
-		 * TEMPORARY: report this stage to the server through a throwaway request, so the
-		 * nginx access log shows exactly how far the plugin got without a console.
-		 * Remove together with the badge once the integration is verified.
-		 */
-		const probe = (stage) => {
-			try {
-				const frames = document.querySelectorAll('[data-shell-overlay]');
-				const frame = frames.length > 0 ? frames[0].parentElement : null;
-				const cols = frame === null ? 'noframe'
-					: Array.prototype.map.call(frame.children, (el) => (el.getAttribute('class') || el.tagName)).join('|');
-				const center = frame === null ? null : frame.querySelector('[data-dsh-mobile-center]');
-				const drawer = frame === null ? null : frame.querySelector('[data-dsh-mobile-drawer]');
-				const drawerRect = drawer === null ? null : drawer.getBoundingClientRect();
-				const rect = center === null ? null : center.getBoundingClientRect();
-				const computed = center === null ? null : window.getComputedStyle(center);
-				let grid = '';
-				try {
-					grid = frame === null ? '' : window.getComputedStyle(frame).gridTemplateColumns;
-				} catch (_gridError) {
-					grid = '';
-				}
-				const url = '/__mux_probe?stage=' + stage
-					+ '&w=' + window.innerWidth
-					+ '&h=' + window.innerHeight
-					+ '&narrow=' + (window.matchMedia('(max-width: 1023px)').matches ? 1 : 0)
-					+ '&coarse=' + (window.matchMedia('(pointer: coarse)').matches ? 1 : 0)
-					+ '&mt=' + (navigator.maxTouchPoints || 0)
-					+ '&dw=' + (drawerRect === null ? -1 : Math.round(drawerRect.width))
-					+ '&dh=' + (drawerRect === null ? -1 : Math.round(drawerRect.height))
-					+ '&dvis=' + (drawer === null ? '?' : window.getComputedStyle(drawer).visibility)
-					+ '&cw=' + (rect === null ? -1 : Math.round(rect.width))
-					+ '&ch=' + (rect === null ? -1 : Math.round(rect.height))
-					+ '&vis=' + (computed === null ? '?' : computed.visibility)
-					+ '&disp=' + (computed === null ? '?' : computed.display)
-					+ '&gtc=' + encodeURIComponent(grid)
-					+ '&cols=' + encodeURIComponent(cols);
-				window.fetch(url, { cache: 'no-store' }).catch(() => {});
-			} catch (_error) { /* diagnostics only */ }
-		};
-		probe('boot');
 
 		/** Width below which the frame collapses its sidebar (ui-layout contract). */
 		const MOBILE_MEDIA = '(max-width: 1023px)';
@@ -271,8 +210,6 @@ window.__ModuleLoader__.load({
 			 * @param ctx - Client root context, with the layout panel service injected.
 			 */
 			apply(ctx) {
-				badge('UX v9: apply', '#2563eb');
-				probe('apply');
 				ctx.effect(() => {
 					let disabled = false;
 					let marksSettled = false;
@@ -309,8 +246,6 @@ window.__ModuleLoader__.load({
 							rightbar.setAttribute('data-dsh-mobile-rightbar', '');
 						}
 						frame.setAttribute('data-dsh-mobile-frame', '');
-						badge('UX v9: ready', '#16a34a');
-						probe('ready');
 						return true;
 					};
 
@@ -338,9 +273,6 @@ window.__ModuleLoader__.load({
 						window.removeEventListener('resize', onResize);
 						clearMarks();
 						style.remove();
-						badge('UX v9: self-disable', '#dc2626');
-						probe('selfdisable');
-						console.warn('[dsh-mobile-ux] layout self-check failed; mobile drawer disabled on this page.');
 					};
 
 					/**
@@ -348,7 +280,7 @@ window.__ModuleLoader__.load({
 					 * settle and after a resize; a single bad reading is retried, because the first
 					 * frames of a page load can still be unsettled. Only a column that is plainly
 					 * gone (no height, display/visibility off, or narrower than a phone control rail)
-					 * is treated as broken, and even then the geometry is reported first.
+					 * is treated as broken.
 					 */
 					let verifyFailures = 0;
 					const verify = () => {
@@ -357,7 +289,6 @@ window.__ModuleLoader__.load({
 						if (frame === null) return;
 						const center = frame.querySelector('[data-dsh-mobile-center]');
 						if (center === null) {
-							probe('verify-missing');
 							disable();
 							return;
 						}
@@ -369,7 +300,6 @@ window.__ModuleLoader__.load({
 							|| computed.display === 'none';
 						if (!broken) {
 							verifyFailures = 0;
-							probe('verify-ok');
 							return;
 						}
 						verifyFailures += 1;
@@ -377,7 +307,6 @@ window.__ModuleLoader__.load({
 							window.setTimeout(verify, 1200);
 							return;
 						}
-						probe('verify-broken');
 						disable();
 					};
 
@@ -391,8 +320,6 @@ window.__ModuleLoader__.load({
 						if (disabled) return;
 						if (!isNarrow()) {
 							clearMarks();
-							badge('UX v9: wide w=' + window.innerWidth, '#a16207');
-							probe('wide');
 							return;
 						}
 						if (marksSettled) {
@@ -412,17 +339,6 @@ window.__ModuleLoader__.load({
 					retryMark();
 					const firstCheck = window.setTimeout(verify, 800);
 					const secondCheck = window.setTimeout(verify, 3000);
-					/* Temporary: report the outcome, and drop the badge once nothing is wrong. */
-					const report = window.setTimeout(() => {
-						if (disabled) return;
-						if (marksSettled) {
-							const el = document.getElementById('dsh-mobile-ux-badge');
-							if (el !== null) el.remove();
-							return;
-						}
-						badge('UX v9: no-frame w=' + window.innerWidth + ' narrow=' + isNarrow(), '#dc2626');
-						probe('noframe');
-					}, 2500);
 
 					/** Ask the frame service to reach the requested drawer state. */
 					const setDrawer = (open) => {
@@ -542,14 +458,39 @@ window.__ModuleLoader__.load({
 					 */
 					const onKeyDown = (event) => {
 						if (disabled || !isNarrow() || !isTouch()) return;
-						if (event.key !== 'Enter' || event.defaultPrevented) return;
-						if (event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return;
+						if (event.key !== 'Enter') return;
+						const target = event.target;
+						/* Any editable focus counts. Requiring the composer's own marker was too
+						   strict: when it did not match, the key fell through to the shortcut layer
+						   on window, which submits the draft — the text before the caret vanished
+						   into a sent message. */
+						const editable = target instanceof Element
+							&& (target.isContentEditable
+								|| target.closest('[contenteditable="true"], [contenteditable=""], [data-lexical-editor="true"]') !== null);
+						if (!editable) return;
+						if (event.defaultPrevented || event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return;
+						/* An input method confirming a candidate owns the key; leave it alone. */
 						if (event.isComposing || event.keyCode === 229) return;
-						if (!(event.target instanceof Element)) return;
-						if (event.target.closest('[data-lexical-editor="true"]') === null) return;
 						event.preventDefault();
 						event.stopImmediatePropagation();
-						if (!document.execCommand('insertLineBreak')) document.execCommand('insertText', false, '\n');
+						event.stopPropagation();
+						/* Replay the key as the composer's own Shift+Enter — the binding it already
+						   treats as a line break — instead of writing to the DOM with execCommand.
+						   execCommand bypasses Lexical's model, and its reconciler then cleared the
+						   line the caret was on, which is exactly the reported symptom. */
+						const root = target.closest('[contenteditable="true"], [contenteditable=""]');
+						const scope = root instanceof Element ? root : target;
+						const before = scope.innerHTML;
+						target.dispatchEvent(new KeyboardEvent('keydown', {
+							key: 'Enter',
+							code: 'Enter',
+							shiftKey: true,
+							bubbles: true,
+							cancelable: true,
+							composed: true
+						}));
+						const inserted = scope.innerHTML !== before;
+						if (!inserted) document.execCommand('insertParagraph');
 					};
 
 					document.addEventListener('touchstart', onTouchStart, { capture: true, passive: true });
@@ -569,7 +510,6 @@ window.__ModuleLoader__.load({
 						window.clearTimeout(firstCheck);
 						window.clearTimeout(secondCheck);
 						window.clearTimeout(resizeTimer);
-						window.clearTimeout(report);
 						window.removeEventListener('resize', onResize);
 						document.removeEventListener('touchstart', onTouchStart, true);
 						document.removeEventListener('touchmove', onTouchMove, true);
@@ -583,8 +523,6 @@ window.__ModuleLoader__.load({
 						document.removeEventListener('keydown', onKeyDown, true);
 						style.remove();
 						clearMarks();
-						const el = document.getElementById('dsh-mobile-ux-badge');
-						if (el !== null) el.remove();
 					};
 				});
 			}
