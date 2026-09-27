@@ -1,0 +1,28 @@
+{
+  "name": "@local/dsh-mobile-ux",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Mobile-only UX: card drawer sidebar with edge swipe, and Enter-to-newline composer.",
+  "meta": {
+    "title": "Mobile UX (抽屉侧栏 + 回车换行)",
+    "description": "手机上把左侧边栏变成侧滑卡片抽屉，并让输入框回车键换行。"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-sidebar"
+      ]
+    }
+  }
+}
