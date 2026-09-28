@@ -32,8 +32,8 @@ window.__ModuleLoader__.load({
 		const DRAWER_CLASS = 'sidebarCol';
 		const CENTER_CLASS = 'centerCol';
 		const RIGHTBAR_CLASS = 'rightbarCol';
-		/** Left-edge band (px) where a gesture may start while the drawer is closed. */
-		const EDGE_START = 44;
+		/** Leftmost fraction of the viewport where a swipe may start. */
+		const SWIPE_START_RATIO = 1 / 3;
 		/** Travel (px) that commits a gesture. */
 		const SWIPE_MIN = 48;
 		/** Travel (px) before a gesture is classified as horizontal or vertical. */
@@ -55,6 +55,7 @@ window.__ModuleLoader__.load({
 			   - show/hide rides on visibility, which inherits through such a wrapper. */
 			'  [data-dsh-mobile-frame] {',
 			'    grid-template-columns: 0 minmax(0, 1fr) 0 !important;',
+			'    overscroll-behavior-x: none;',
 			'  }',
 			'  [data-dsh-mobile-frame] > [data-dsh-mobile-drawer] {',
 			'    position: relative !important;',
@@ -388,6 +389,24 @@ window.__ModuleLoader__.load({
 						if (drawerOpen() !== open) ctx.layout.toggleSidebar();
 					};
 
+					/**
+					 * Whether a horizontal drag may begin at this point. The whole left third of the
+					 * viewport qualifies: the system back gesture owns the first 20-24px, so a drawer
+					 * that could only be pulled from the very edge kept losing the gesture to it.
+					 * Editable fields and horizontally scrollable content keep their own drags.
+					 */
+					const canStartSwipe = (target, x) => {
+						if (x > window.innerWidth * SWIPE_START_RATIO) return false;
+						if (!(target instanceof Element)) return true;
+						if (target.closest('input, textarea, [contenteditable="true"], [contenteditable=""]') !== null) return false;
+						for (let el = target; el !== null; el = el.parentElement) {
+							const overflowX = window.getComputedStyle(el).overflowX;
+							if (overflowX !== 'auto' && overflowX !== 'scroll') continue;
+							if (el.scrollWidth > el.clientWidth + 1) return false;
+						}
+						return true;
+					};
+
 					/* --- Swipe gesture (touch) ------------------------------------- */
 					let touch = null;
 					const onTouchStart = (event) => {
@@ -396,8 +415,7 @@ window.__ModuleLoader__.load({
 						if (event.touches.length !== 1) return;
 						const point = event.touches[0];
 						const open = drawerOpen();
-						/* Closed: only a left-edge start may open the drawer. */
-						if (!open && point.clientX > EDGE_START) return;
+						if (!open && !canStartSwipe(event.target, point.clientX)) return;
 						touch = { x: point.clientX, y: point.clientY, open, horizontal: false };
 					};
 					const onTouchMove = (event) => {
@@ -439,7 +457,7 @@ window.__ModuleLoader__.load({
 						if (event.pointerType === 'touch') return;
 						if (disabled || !isNarrow() || frameElement() === null) return;
 						const open = drawerOpen();
-						if (!open && event.clientX > EDGE_START) return;
+						if (!open && !canStartSwipe(event.target, event.clientX)) return;
 						drag = { x: event.clientX, y: event.clientY, open, horizontal: false };
 					};
 					const onPointerMove = (event) => {
