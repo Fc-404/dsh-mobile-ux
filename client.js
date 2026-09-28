@@ -207,7 +207,7 @@ window.__ModuleLoader__.load({
 			'  }',
 			'  [data-question-key] header > div:last-child > button { pointer-events: auto; }',
 			'  [data-question-key] header > div:last-child > button:not([aria-expanded]) { order: -1; }',
-			'  [data-question-key] header > div:first-child { padding: 0 28px; }',
+			'  [data-question-key] header > div:first-child { padding: 0 24px; }',
 			'}'
 		].join('\n');
 
