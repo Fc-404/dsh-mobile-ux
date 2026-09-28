@@ -197,17 +197,39 @@ window.__ModuleLoader__.load({
 			   --------------------------------------------------------------------- */
 			'@media (max-width: 1023px) {',
 			'  [data-question-key] header { position: relative; }',
+			/* The actions row is laid over the header and spread to both ends; it keeps the
+			   header's own vertical padding but hugs the card edges horizontally. */
 			'  [data-question-key] header > div:last-child {',
 			'    position: absolute;',
 			'    inset: 0;',
 			'    justify-content: space-between;',
 			'    align-items: flex-start;',
 			'    padding: inherit;',
+			'    padding-left: 8px;',
+			'    padding-right: 8px;',
 			'    pointer-events: none;',
 			'  }',
 			'  [data-question-key] header > div:last-child > button { pointer-events: auto; }',
-			'  [data-question-key] header > div:last-child > button:not([aria-expanded]) { order: -1; }',
-			'  [data-question-key] header > div:first-child { padding: 0 24px; }',
+			/* Close: far left, original size, nudged down so its glyph lines up with the
+			   centre of the larger collapse button beside it. */
+			'  [data-question-key] header > div:last-child > button:not([aria-expanded]) {',
+			'    order: -1;',
+			'    margin-top: 8px;',
+			'  }',
+			/* Collapse: top right, made deliberately larger than close to prevent mis-taps. */
+			'  [data-question-key] header > div:last-child > button[aria-expanded] {',
+			'    width: 40px;',
+			'    height: 40px;',
+			'  }',
+			'  [data-question-key] header > div:last-child > button[aria-expanded] svg {',
+			'    width: 20px;',
+			'    height: 20px;',
+			'  }',
+			/* Heading clears both buttons: 24px (close) on the left, 40px (collapse) on the right. */
+			'  [data-question-key] header > div:first-child {',
+			'    padding-left: 24px;',
+			'    padding-right: 40px;',
+			'  }',
 			'}'
 		].join('\n');
 
