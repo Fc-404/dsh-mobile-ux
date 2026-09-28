@@ -187,6 +187,27 @@ window.__ModuleLoader__.load({
 			'  [data-shortcut-modal="settings"] > div > div:last-child {',
 			'    padding: 14px 16px calc(20px + env(safe-area-inset-bottom, 0px)) !important;',
 			'  }',
+			'}',
+			/* ---------------------------------------------------------------------
+			   Question card (mobile). Its collapse and close buttons both sit in the
+			   top-right corner, 4px apart and 24px square, which invites mis-taps. Only
+			   their positions change — no sizes and no DOM edits: the actions row is laid
+			   over the header and spread to both ends, and `order` sends the close button
+			   (the one without aria-expanded) to the left. The heading keeps clear of both.
+			   --------------------------------------------------------------------- */
+			'@media (max-width: 1023px) {',
+			'  [data-question-key] header { position: relative; }',
+			'  [data-question-key] header > div:last-child {',
+			'    position: absolute;',
+			'    inset: 0;',
+			'    justify-content: space-between;',
+			'    align-items: flex-start;',
+			'    padding: inherit;',
+			'    pointer-events: none;',
+			'  }',
+			'  [data-question-key] header > div:last-child > button { pointer-events: auto; }',
+			'  [data-question-key] header > div:last-child > button:not([aria-expanded]) { order: -1; }',
+			'  [data-question-key] header > div:first-child { padding: 0 40px; }',
 			'}'
 		].join('\n');
 
