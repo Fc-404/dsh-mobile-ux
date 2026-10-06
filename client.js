@@ -231,6 +231,22 @@ window.__ModuleLoader__.load({
 			'    padding-left: 24px;',
 			'    padding-right: 40px;',
 			'  }',
+			'}',
+			/* ---------------------------------------------------------------------
+			   Row tools (mobile). A row's action buttons (⋯ menu, quick actions) are
+			   display:none until :hover, and a touch screen has no hover — the current
+			   session and every group keep theirs visible instead, and the time/pin
+			   indicators step aside exactly as the shipped hover rule makes them.
+			   --------------------------------------------------------------------- */
+			'@media (max-width: 1023px) {',
+			'  [data-row-key^="session:"][aria-selected="true"] [class*="_rowActions"],',
+			'  [data-row-key^="workspace:"] [class*="_rowActions"] {',
+			'    display: inline-flex !important;',
+			'  }',
+			'  [data-row-key^="session:"][aria-selected="true"] [class*="_time"],',
+			'  [data-row-key^="session:"][aria-selected="true"] [class*="_pinIndicator"] {',
+			'    display: none !important;',
+			'  }',
 			'}'
 		].join('\n');
 
@@ -498,17 +514,36 @@ window.__ModuleLoader__.load({
 
 					/* --- Tap dismisses the drawer ------------------------------- */
 					/**
-					 * Any tap while the drawer is open dismisses it: a conversation outside it,
-					 * the scrim, or the conversation area. Deferred to a timeout so the frame's own
-					 * control (the sidebar's collapse button) can close it first without us
-					 * toggling it back open.
+					 * Only a tap on a conversation row — or on the scrim / conversation outside the
+					 * drawer — dismisses it. A row's own tools (⋯ menu, quick actions), that menu's
+					 * portalled surface and dialogs such as rename all stay usable, so none of them
+					 * may close the drawer: closing on every tap made rename impossible to finish.
 					 */
-					const onClick = () => {
+					const onClick = (event) => {
 						if (disabled || !isNarrow() || !drawerOpen()) return;
 						if (Date.now() < suppressClickUntil) return;
-						window.setTimeout(() => {
-							if (!disabled && drawerOpen()) setDrawer(false);
-						}, 0);
+						const target = event.target;
+						if (!(target instanceof Element)) return;
+						/* Portalled surfaces keep the drawer open. */
+						if (target.closest('[role="menu"], [role="dialog"], [aria-modal="true"], [data-shortcut-modal]') !== null) return;
+						const frame = frameElement();
+						if (frame === null) return;
+						const drawer = frame.querySelector('[data-dsh-mobile-drawer]');
+						const dismiss = () => {
+							window.setTimeout(() => {
+								if (!disabled && drawerOpen()) setDrawer(false);
+							}, 0);
+						};
+						if (drawer === null || !drawer.contains(target)) {
+							/* Scrim or conversation area. */
+							dismiss();
+							return;
+						}
+						/* Inside the drawer: a row's tools (and anything else) stay open, only a
+						   conversation row itself closes it. */
+						if (target.closest('[class*="_rowActions"]') !== null) return;
+						if (target.closest('[data-row-key^="session:"]') === null) return;
+						dismiss();
 					};
 
 					/* --- Enter inserts a line break ------------------------------- */
